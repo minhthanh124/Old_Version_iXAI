@@ -1,0 +1,1 @@
+modality_service_get_task_endpoint = "http://modality-service:8002/modality/get_task_per_name/"

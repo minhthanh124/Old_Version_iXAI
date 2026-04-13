@@ -1,0 +1,67 @@
+image: docker:latest
+
+stages:
+  - clean
+  - build
+  - deploy
+
+variables:
+  DOCKER_DRIVER: overlay2
+  DOCKER_HOST: tcp://docker:2375/
+  DOCKER_TLS_CERTDIR: ""
+
+services:
+  - docker:dind
+
+before_script:
+  - apk add --no-cache docker-compose  # Needed in docker:latest image
+  - docker info
+    # Modality Service
+  - mkdir -p backend/modality_service
+  - echo "POSTGRES_DB=$MODALITY_DB_NAME" > backend/modality_service/.env
+  - echo "POSTGRES_USER=$MODALITY_DB_USER" >> backend/modality_service/.env
+  - echo "POSTGRES_PASSWORD=$MODALITY_DB_PASSWORD" >> backend/modality_service/.env
+
+  # Upload Service
+  - mkdir -p backend/upload_service
+  - echo "POSTGRES_DB=$UPLOAD_DB_NAME" > backend/upload_service/.env
+  - echo "POSTGRES_USER=$UPLOAD_DB_USER" >> backend/upload_service/.env
+  - echo "POSTGRES_PASSWORD=$UPLOAD_DB_PASSWORD" >> backend/upload_service/.env
+
+  # Explanation Service
+  - mkdir -p backend/explanation_service
+  - echo "POSTGRES_DB=$EXPLANATION_DB_NAME" > backend/explanation_service/.env
+  - echo "POSTGRES_USER=$EXPLANATION_DB_USER" >> backend/explanation_service/.env
+  - echo "POSTGRES_PASSWORD=$EXPLANATION_DB_PASSWORD" >> backend/explanation_service/.env
+
+
+clean:
+  stage: clean
+  script:
+    - echo "Cleaning up Docker resources..."
+    - docker system prune -af --volumes || true
+    - docker image prune -a -f || true
+    - docker container prune -f || true
+    - docker volume prune -f || true
+  only:
+    - main
+    - merge_requests
+
+build:
+  stage: build
+  script:
+    - echo "Building Django application..."
+    # - docker-compose -f docker-compose.yml build
+  only:
+    - main
+    - merge_requests
+
+deploy:
+  stage: deploy
+  script:
+    - echo "Deploying Django application..."
+    # - docker-compose -f docker-compose.yml down
+    # - docker-compose -f docker-compose.yml up
+  only:
+    - main
+    - merge_requests

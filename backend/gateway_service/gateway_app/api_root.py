@@ -1,0 +1,5 @@
+modality_service_path = "http://modality-service:8002/modality/"
+upload_service_path = "http://upload-service:8003/upload/"
+explanation_service_path = "http://explanation-service:8005/explanation/"
+# plugin_service_path = "http://plugin-service:8004/plugin/"
+gateway_service_path = "http://gateway-service:8001/gateway-service/"
