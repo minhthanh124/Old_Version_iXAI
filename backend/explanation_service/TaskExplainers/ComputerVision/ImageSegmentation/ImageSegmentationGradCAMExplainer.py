@@ -16,7 +16,6 @@ from rest_framework import status
 import torch.nn.functional as F
 from utils.utils import extract_conv_layer, get_last_conv_layer, get_class_name, get_list_current_layers, format_target_class, get_target_list, generate_explanation_description
 from pytorch_grad_cam.base_cam import BaseCAM
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 class SegmentationWrapper(nn.Module):
     def __init__(self, model):
@@ -35,13 +34,14 @@ class SegmentationWrapper(nn.Module):
 class ImageSegmentationGradCAMExplainer(IGradcamExplainer):
     def __init__(self):
         self.datatypes = None
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     
     def pre_processing(self, dataset):
         transform = transforms.Compose([
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5]*3, std=[0.5]*3)
         ])
-        input_tensor = transform(dataset).unsqueeze(0)
+        input_tensor = transform(dataset).unsqueeze(0).to(self.device)
         return input_tensor
 
     def compute_cam(self, **kwargs):
@@ -107,6 +107,8 @@ class ImageSegmentationGradCAMExplainer(IGradcamExplainer):
         image_pil = kwargs.get("dataset").resize((512, 512))
         input_tensor = self.pre_processing(image_pil)
         model = kwargs.get("model")
+        if isinstance(model, torch.nn.Module):
+            model = model.to(self.device)
         model.eval()
         target_class = None
         if layer is not None:
@@ -161,7 +163,7 @@ class ImageSegmentationGradCAMExplainer(IGradcamExplainer):
         result = {"image_base64": cam_image_base64}
         
         # Generate simplified description using GPT
-        gpt_description_initialize = "Could not explain the result due to OpenAI API error. Try again later!"
+        gpt_description_initialize = ""
         gpt_description = generate_explanation_description(result, 'computer_vision', prediction=class_name)
         if gpt_description and not gpt_description.startswith("Unable to"):
             gpt_description_initialize = gpt_description

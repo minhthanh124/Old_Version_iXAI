@@ -21,9 +21,13 @@ class NaturalLanguageProcessingExplanationCoordinator(IModalityExplanationCoordi
         self.tokenizer = None
         self.model = None
         self.label = None
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def load_model(self, model_path):
-        model = torch.load(model_path, weights_only=False)
+        model = torch.load(model_path, weights_only=False, map_location=self.device)
+        if isinstance(model, torch.nn.Module):
+            model = model.to(self.device)
+            model.eval()
         return model
 
     def load_data(self, data_path):

@@ -17,6 +17,7 @@ class QuestionAnsweringSHAPExplainer(IShapExplainer):
         self.description = ""
         self.extra_data = ""
         self.MAX_LEN = 50
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def pre_processing(self, dataset):
         return dataset.replace("[SEP]", self.tokenizer.sep_token)
@@ -33,6 +34,8 @@ class QuestionAnsweringSHAPExplainer(IShapExplainer):
         model = kwargs.get("model")
         tokenizer = kwargs.get("tokenizer")
         dataset = kwargs.get("dataset")
+        if isinstance(model, torch.nn.Module):
+            model = model.to(self.device)
         model.eval()
         model.config.is_decoder = True
         self.model = model
@@ -65,9 +68,10 @@ class QuestionAnsweringSHAPExplainer(IShapExplainer):
         for pair in questions:
             question, context = pair.split(self.tokenizer.sep_token)
             tokenized = self.tokenizer(question.strip(), context.strip(), padding='max_length',truncation=True, max_length=self.MAX_LEN, return_tensors='pt')
+            tokenized = {k: v.to(self.device) for k, v in tokenized.items()}
             output = self.model(**tokenized)
             logits = output.start_logits if start else output.end_logits
-            out.append(logits.detach().numpy().flatten())
+            out.append(logits.detach().cpu().numpy().flatten())
         return out
 
     # SHAP model functions
@@ -97,7 +101,10 @@ class QuestionAnsweringSHAPExplainer(IShapExplainer):
             
             # Get model predictions for start and end positions
             with torch.no_grad():
-                model_output = self.model(input_ids=torch.tensor([input_ids]), attention_mask=torch.tensor([tokenized['attention_mask']]))
+                model_output = self.model(
+                    input_ids=torch.tensor([input_ids], device=self.device),
+                    attention_mask=torch.tensor([tokenized['attention_mask']], device=self.device)
+                )
                 start_logits = model_output.start_logits[0].cpu().numpy()
                 end_logits = model_output.end_logits[0].cpu().numpy()
             

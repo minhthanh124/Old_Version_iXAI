@@ -35,7 +35,7 @@ const HomePage: React.FC = () => {
         <main className="text-left">
           <div className="mt-12 border-t border-gray-300 pt-8">
             <p className="text-xl text-blue-600 italic mb-10">
-              💡This application helps you understand how an AI made a decision - for an image, a text, or a table.<br/> Just upload your files and we’ll show you a visual explanation.
+              💡This application helps you understand how an AI made a decision - for an image, a text, or a table.<br/> Just upload your models and we’ll show you a visual explanation.
             </p>
           </div>
 

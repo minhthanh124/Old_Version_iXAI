@@ -17,6 +17,7 @@ class TextClassificationSHAPExplainer(IShapExplainer):
         self.description = ""
         self.extra_data = ""
         self.label = None
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def pre_processing(self, dataset):
         return ""
@@ -44,6 +45,8 @@ class TextClassificationSHAPExplainer(IShapExplainer):
             label_path = next(iter(label_idx.values()))
             self.label = self.load_label(label_path)
         input_texts = [dataset]
+        if isinstance(model, torch.nn.Module):
+            model = model.to(self.device)
         model.eval()
         model.config.is_decoder = True
         self.model = model
@@ -76,9 +79,10 @@ class TextClassificationSHAPExplainer(IShapExplainer):
         elif isinstance(texts, np.ndarray):
             texts = texts.tolist()
         tokenized = self.tokenizer(texts, padding=True, truncation=True, return_tensors='pt')
+        tokenized = {k: v.to(self.device) for k, v in tokenized.items()}
         with torch.no_grad():
             outputs = self.model(**tokenized)
-            probabilities = torch.nn.functional.softmax(outputs.logits, dim=1).numpy()
+            probabilities = torch.nn.functional.softmax(outputs.logits, dim=1).cpu().numpy()
         return probabilities
 
     def _create_text_explanation(self, shap_values, original_text):

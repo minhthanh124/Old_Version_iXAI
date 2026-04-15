@@ -20,9 +20,13 @@ from utils.utils import get_task_explainer, get_model_dataset_idx
 class ComputerVisionExplanationCoordinator(IModalityExplanationCoordinator):
     def __init__(self):
         self.module_path = "TaskExplainers.ComputerVision."
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def load_model(self, model_path):
-        model = torch.load(model_path, weights_only=False)
+        model = torch.load(model_path, weights_only=False, map_location=self.device)
+        if isinstance(model, torch.nn.Module):
+            model = model.to(self.device)
+            model.eval()
         return model
 
     def load_data(self, data_path):

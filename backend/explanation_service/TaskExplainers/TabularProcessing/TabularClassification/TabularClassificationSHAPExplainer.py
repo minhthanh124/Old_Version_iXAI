@@ -13,9 +13,6 @@ from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 import io
 import base64
-import os
-
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 class TabularClassificationSHAPExplainer(IShapExplainer):
     def __init__(self):

@@ -87,8 +87,18 @@ services:
       - ./backend/explanation_service:/app
     ports:
       - "8005:8005"
+    environment:
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: compute,utility
     env_file:
       - ./backend/explanation_service/.env
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     depends_on:
       - explanation_db
 

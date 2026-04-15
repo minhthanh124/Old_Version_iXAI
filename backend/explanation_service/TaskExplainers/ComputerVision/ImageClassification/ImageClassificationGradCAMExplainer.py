@@ -22,7 +22,6 @@ logger = logging.getLogger(__name__)
 
 
 from utils.utils import extract_conv_layer, get_last_conv_layer, get_class_name, get_list_current_layers, format_target_class, get_target_list, generate_explanation_description
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 # Wrap model
 class WrapperModel(torch.nn.Module):
@@ -39,6 +38,7 @@ class WrapperModel(torch.nn.Module):
 class ImageClassificationGradCAMExplainer(IGradcamExplainer):
     def __init__(self):
         self.data_class = None
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def pre_processing(self, dataset):
         transform = transforms.Compose([
@@ -46,7 +46,7 @@ class ImageClassificationGradCAMExplainer(IGradcamExplainer):
             transforms.ToTensor(),
             transforms.Normalize(mean=[0.5]*3, std=[0.5]*3)
         ])
-        input_tensor = transform(dataset).unsqueeze(0)
+        input_tensor = transform(dataset).unsqueeze(0).to(self.device)
         return input_tensor
 
     def compute_cam(self, **kwargs):
@@ -96,6 +96,9 @@ class ImageClassificationGradCAMExplainer(IGradcamExplainer):
         image_pil = kwargs.get("dataset")
         input_tensor = self.pre_processing(image_pil)
         model = kwargs.get("model")
+        if isinstance(model, torch.nn.Module):
+            model = model.to(self.device)
+            model.eval()
         data_path = kwargs.get("remains")
         label_idx = next((pair[1] for pair in data_path if pair[0] == "label_path"), None)
         layer = next((pair[1] for pair in data_path if pair[0] == "layer"), None)
@@ -146,7 +149,7 @@ class ImageClassificationGradCAMExplainer(IGradcamExplainer):
             extra_data = {}
         result = {"image_base64": cam_image_base64}
 
-        gpt_description_initialize = "Could not explain the result due to OpenAI API error. Try again later!"
+        gpt_description_initialize = ""
         gpt_description = generate_explanation_description(result, 'computer_vision', prediction=class_name)
         if gpt_description and not gpt_description.startswith("Unable to"):
             gpt_description_initialize = gpt_description
